@@ -35,7 +35,7 @@
     "extend": "^3.0.1",
     "hbs": "~4.0.1",
     "morgan": "~1.8.2",
-    "samlp": "3.3.2",
+    "samlp": "git+https://github.com/medullan/node-samlp.git#v3.4.1-0",
     "yargs": "^9.0.1"
   },
   "devDependencies": {

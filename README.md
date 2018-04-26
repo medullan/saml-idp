@@ -27,7 +27,7 @@ Open `http://localhost:7000` in your browser to start an IdP initiated flow to y
 #### Example
 
 ```
-node app.js --acs https://foo.okta.com/auth/saml20/example --aud https://www.okta.com/saml2/service-provider/spf5aFRRXFGIMAYXQPNV
+node app.js --acs https://foo.okta.com/auth/saml20/example --aud https://www.okta.com/saml2/service-provider/spf5aFRRXFGIMAYXQPNV --async-acs 'http://localhost:3000/v1/auth/sso/callback?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1'
 ```
 
 #### Options

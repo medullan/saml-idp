@@ -148,6 +148,11 @@ function processArgs(options) {
         required: true,
         alias: 'acs'
       },
+      asyncAcsUrls: {
+        description: 'Async SP Assertion Consumer URL',
+        required: false,
+        alias: 'async-acs'
+      },
       audience: {
         description: 'SP Audience URI',
         required: true,
@@ -264,11 +269,16 @@ function _runServer(argv) {
     http.createServer(app);
   const blocks = {};
 
+  argv.asyncAcsUrls = (argv.asyncAcsUrls || '').split(',').map((acsUrl) => {
+    return {acsUrl};
+  });
+
   console.log();
   console.log('Listener Port:\n\t' + argv.port);
   console.log('HTTPS Listener:\n\t' + argv.https);
   console.log('IdP Issuer URI:\n\t' + argv.issuer);
   console.log('SP ACS URL:\n\t' + argv.acsUrl);
+  console.log('Async SP ACS URL:\n\t', argv.asyncAcsUrls);
   console.log('SP Audience URI:\n\t' + argv.audience);
   console.log('Default RelayState:\n\t' + argv.relayState);
   console.log('Allow SP to Specify ACS URLs:\n\t' + !argv.disableRequestAcsUrl);
@@ -302,6 +312,7 @@ function _runServer(argv) {
     authnContextClassRef:   'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
     includeAttributeNameFormat: true,
     profileMapper:          SimpleProfileMapper,
+    asyncAssertions:        argv.asyncAcsUrls,
     getUserFromRequest:     function(req) { return req.user; },
     getPostURL:             function (audience, authnRequestDom, req, callback) {
                               return callback(null, (req.authnRequest && req.authnRequest.acsUrl) ?
