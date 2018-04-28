@@ -27,7 +27,7 @@ Open `http://localhost:7000` in your browser to start an IdP initiated flow to y
 #### Example
 
 ```
-node app.js --acs https://foo.okta.com/auth/saml20/example --aud https://www.okta.com/saml2/service-provider/spf5aFRRXFGIMAYXQPNV --async-acs 'http://localhost:3000/v1/auth/sso/callback?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1'
+node app.js --acs http://sp-one.com:5000/login/callback --aud http://sp-one.com:5000/login/callback --async-acs 'http://uni-nav.com:3000/v1/auth/sso/callback?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1'
 ```
 
 #### Options
@@ -158,7 +158,7 @@ Encrypted assertions require both a certificate and public key from the target s
 
 PEM files that contain the header `-----BEGIN CERTIFICATE-----` can also be converted to  just the public key which is a file with just the `-----BEGIN PUBLIC KEY-----` header
 
-`openssl x509 -pubkey -noout -in cert.pem > pub.key`
+`openssl x509 -pubkey -noout -in idp-public-cert.pem > idp-public-key.key`
 
 
 ## Passing key/cert pairs from environment variables

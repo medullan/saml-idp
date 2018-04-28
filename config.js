@@ -3,8 +3,8 @@
  * User Profile
  */
 var profile = {
-  _id: '56890987654567',
   userName: 'saml.jackson@example.com',
+  password: 'p@ssw0rd',
   nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
   firstName: 'Saml',
   lastName: 'Jackson',
@@ -72,5 +72,8 @@ var metadata = [
 
 module.exports = {
   user: profile,
-  metadata: metadata
+  metadata: metadata,
+  database: {
+    connectionUrl: process.env.MONGO_URL || 'mongodb://localhost/saml-idp'
+  }
 }
