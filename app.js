@@ -507,7 +507,7 @@ function _runServer(argv) {
       .findOne({email: req.body.email})
       .then((user) => {
         if (!user) {
-          next(new Error('could not verify user'));
+          return res.redirect('/login');
         }
         return user.verifyPassword(req.body.password)
           .then(function(valid) {
@@ -533,11 +533,15 @@ function _runServer(argv) {
 
               return next();
             } else {
-              return next(new Error('could not verify user'));
+              console.log('password not valid');
+              return res.redirect('/login');
             }
           });
       })
-      .catch(next);
+      .catch((err) => {
+        console.log('err validating creds', err);
+        return res.redirect('/login');
+      });
     },
     samlp.auth(idpOptions)
   );
