@@ -27,7 +27,7 @@ Open `http://localhost:7000` in your browser to start an IdP initiated flow to y
 #### Example
 
 ```
-node app.js --acs http://sp-one.com:5000/login/callback --aud http://sp-one.com:5000/login/callback --async-acs 'http://uni-nav.com:3000/v1/auth/sso/callback?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1'
+node app.js --acs http://sp-one.com:5000/login/callback --aud http://sp-one.com:5000/login/callback --async-acs 'http://uni-nav.com:3000/v1/auth/sso/callback?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1&ref=sp-one.com:5000' --logout-urls 'http://sp-one.com:5000/logout,http://uni-nav.com:3000/v1/auth/user/logout?appId=e8b836cd6d20f3431e0fbcb54196360b&clientKey=7c2759273aaf770093f92e0accca965255fac0d1&ref=sp-one.com:5000'
 ```
 
 #### Options
