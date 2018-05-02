@@ -11,7 +11,8 @@ var profile = {
   displayName: 'saml jackson',
   email: 'saml.jackson@example.com',
   mobilePhone: '+1-415-555-5141',
-  groups: 'Simple IdP Users, West Coast Users, Cloud Users'
+  groups: 'Simple IdP Users, West Coast Users, Cloud Users',
+  userType: 'Admin'
 }
 
 /**

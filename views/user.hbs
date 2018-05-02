@@ -157,9 +157,9 @@
                 <label class="col-sm-3 control-label" for="{{this.id}}">{{this.displayName}}</label>
                 <div class="col-sm-9">
                   {{#if this.options}}
-                  <select class="form-control" id="{{this.id}}" name="{{this.id}}">
+                  <select class="form-control" id="{{this.id}}" name="{{this.id}}" {{#if ../otherUser}}disabled{{/if}}>
                   {{#each this.options}}
-                    <option>
+                    <option {{#ifEq this ../../user.userType}}selected{{/ifEq}}>
                       {{this}}
                     </option>
                   {{/each}}
@@ -176,11 +176,15 @@
               {{/each}}
             </div>
           </div>
+          {{#if isAdmin}}
           <div class="form-group">
             <div class="col-md-12 text-right">
-              <button class="btn btn-default input-xlarge" id="btn-show-attribute-modal"><i class="fa fa-plus-circle"><span>Add attribute</span></i></button> <button class="btn btn-primary input-xlarge" type="submit"><i class="fa fa-sign-in"><span>Sign in</span></i></button>
+              <button class="btn btn-default input-xlarge" id="btn-show-attribute-modal"><i class="fa fa-plus-circle"><span>Add attribute</span></i></button> 
+              {{!-- <button class="btn btn-primary input-xlarge" type="submit"><i class="fa fa-sign-in"><span>Sign in</span></i></button> --}}
             </div>
-          </div>{{#if authnRequest.id}} <input name="_authnRequest" type='hidden' value='{{serialize authnRequest}}'> {{/if}}
+          </div>
+          {{/if}}
+          {{#if authnRequest.id}} <input name="_authnRequest" type='hidden' value='{{serialize authnRequest}}'> {{/if}}
         </div>
       </form>
     </div><!-- /.form-profile-attributes -->

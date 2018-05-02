@@ -3,21 +3,21 @@
  * Module dependencies.
  */
 
-const express             = require('express'),
-      os                  = require('os'),
-      fs                  = require('fs'),
-      http                = require('http'),
-      https               = require('https'),
-      path                = require('path'),
-      extend              = require('extend'),
-      hbs                 = require('hbs'),
-      logger              = require('morgan'),
-      cookieParser        = require('cookie-parser'),
-      bodyParser          = require('body-parser'),
-      session             = require('express-session'),
-      samlp               = require('samlp'),
-      yargs               = require('yargs'),
-      SimpleProfileMapper = require('./lib/simpleProfileMapper.js');
+const express = require('express'),
+  os = require('os'),
+  fs = require('fs'),
+  http = require('http'),
+  https = require('https'),
+  path = require('path'),
+  extend = require('extend'),
+  hbs = require('hbs'),
+  logger = require('morgan'),
+  cookieParser = require('cookie-parser'),
+  bodyParser = require('body-parser'),
+  session = require('express-session'),
+  samlp = require('samlp'),
+  yargs = require('yargs'),
+  SimpleProfileMapper = require('./lib/simpleProfileMapper.js');
 
 const _ = require('lodash');
 const mongoose = require('./lib/datalayer');
@@ -27,13 +27,13 @@ const extractDomain = require('./lib/extract-domain');
  * Globals
  */
 
-const cryptTypes           = {
-      certificate: /-----BEGIN CERTIFICATE-----[^-]*-----END CERTIFICATE-----/,
-      'RSA private key': /-----BEGIN RSA PRIVATE KEY-----\n[^-]*\n-----END RSA PRIVATE KEY-----/,
-      'public key': /-----BEGIN PUBLIC KEY-----\n[^-]*\n-----END PUBLIC KEY-----/,
-    },
-    KEY_CERT_HELP_TEXT = "Please generate a key-pair for the IdP using the following openssl command:\n" +
-      "\topenssl req -x509 -new -newkey rsa:2048 -nodes -subj '/C=US/ST=California/L=San Francisco/O=JankyCo/CN=Test Identity Provider' -keyout idp-private-key.pem -out idp-public-cert.pem -days 7300";
+const cryptTypes = {
+  certificate: /-----BEGIN CERTIFICATE-----[^-]*-----END CERTIFICATE-----/,
+  'RSA private key': /-----BEGIN RSA PRIVATE KEY-----\n[^-]*\n-----END RSA PRIVATE KEY-----/,
+  'public key': /-----BEGIN PUBLIC KEY-----\n[^-]*\n-----END PUBLIC KEY-----/,
+},
+  KEY_CERT_HELP_TEXT = "Please generate a key-pair for the IdP using the following openssl command:\n" +
+    "\topenssl req -x509 -new -newkey rsa:2048 -nodes -subj '/C=US/ST=California/L=San Francisco/O=JankyCo/CN=Test Identity Provider' -keyout idp-private-key.pem -out idp-public-cert.pem -days 7300";
 
 
 function matchesCertType(value, type) {
@@ -96,7 +96,7 @@ function getHashCode(str) {
   if (str.length == 0) return hash;
   for (i = 0; i < str.length; i++) {
     char = str.charCodeAt(i);
-    hash = ((hash<<5)-hash)+char;
+    hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash;
@@ -114,135 +114,135 @@ function processArgs(options) {
   if (options) {
     baseArgv = yargs.config(options);
   } else {
-    baseArgv = yargs.config('settings', function(settingsPathArg) {
+    baseArgv = yargs.config('settings', function (settingsPathArg) {
       const settingsPath = resolveFilePath(settingsPathArg);
       return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
     });
   }
   return baseArgv
     .usage('\nSimple IdP for SAML 2.0 WebSSO Profile\n\n' +
-        'Launches Web Server that mints SAML assertions for a Service Provider (SP)\n\n' +
-        'Usage:\n\t$0 -acs {url} -aud {uri}', {
-      port: {
-        description: 'Web Server Listener Port',
-        required: true,
-        alias: 'p',
-        default: 7000
-      },
-      cert: {
-        description: 'IdP Signature PublicKey Certificate',
-        required: true,
-        default: './idp-public-cert.pem',
-        coerce: makeCertFileCoercer('certificate', 'IdP Signature PublicKey Certificate', KEY_CERT_HELP_TEXT)
-      },
-      key: {
-        description: 'IdP Signature PrivateKey Certificate',
-        required: true,
-        default: './idp-private-key.pem',
-        coerce: makeCertFileCoercer('RSA private key', 'IdP Signature PrivateKey Certificate', KEY_CERT_HELP_TEXT)
-      },
-      issuer: {
-        description: 'IdP Issuer URI',
-        required: true,
-        alias: 'iss',
-        default: 'urn:example:idp'
-      },
-      acsUrl: {
-        description: 'SP Assertion Consumer URL',
-        required: true,
-        alias: 'acs'
-      },
-      asyncAcsUrls: {
-        description: 'Async SP Assertion Consumer URL',
-        required: false,
-        alias: 'async-acs'
-      },
-      logoutUrls: {
-        description: 'SP Consumer logout URLs',
-        required: true,
-        alias: 'logout-urls'
-      },
-      audience: {
-        description: 'SP Audience URI',
-        required: true,
-        alias: 'aud'
-      },
-      relayState: {
-        description: 'Default SAML RelayState for SAMLResponse',
-        required: false,
-        alias: 'rs'
-      },
-      disableRequestAcsUrl: {
-        description: 'Disables ability for SP AuthnRequest to specify Assertion Consumer URL',
-        required: false,
-        boolean: true,
-        alias: 'static',
-        default: false
-      },
-      encryptAssertion: {
-        description: 'Encrypts assertion with SP Public Key',
-        required: false,
-        boolean: true,
-        alias: 'enc',
-        default: false
-      },
-      encryptionCert: {
-        description: 'SP Certificate (pem) for Assertion Encryption',
-        required: false,
-        string: true,
-        alias: 'encCert',
-        default: './idp-server.crt',
-        coerce: makeCertFileCoercer('certificate', 'Encryption cert')
-      },
-      encryptionPublicKey: {
-        description: 'SP RSA Public Key (pem) for Assertion Encryption ' +
-        '(e.g. openssl x509 -pubkey -noout -in sp-cert.pem)',
-        required: false,
-        string: true,
-        alias: 'encKey',
-        default: './idp-public-key.key',
-        coerce: makeCertFileCoercer('public key', 'Encryption public key')
-      },
-      httpsPrivateKey: {
-        description: 'Web Server TLS/SSL Private Key (pem)',
-        required: false,
-        string: true,
-        coerce: makeCertFileCoercer('RSA private key')
-      },
-      httpsCert: {
-        description: 'Web Server TLS/SSL Certificate (pem)',
-        required: false,
-        string: true,
-        coerce: makeCertFileCoercer('certificate')
-      },
-      https: {
-        description: 'Enables HTTPS Listener (requires httpsPrivateKey and httpsCert)',
-        required: true,
-        boolean: true,
-        default: false
-      },
-      signResponse: {
-        description: 'Enables signing of responses',
-        required: false,
-        boolean: true,
-        default: true,
-        alias: 'signResponse'
-      },
-      configFile: {
-        description: 'Path to a SAML attribute config file',
-        required: true,
-        default: require.resolve('./config.js'),
-        alias: 'conf'
-      },
-      rollSession: {
-        description: 'Create a new session for every authn request instead of reusing an existing session',
-        required: false,
-        boolean: true,
-        default: false
-      }
-    })
+      'Launches Web Server that mints SAML assertions for a Service Provider (SP)\n\n' +
+      'Usage:\n\t$0 -acs {url} -aud {uri}', {
+        port: {
+          description: 'Web Server Listener Port',
+          required: true,
+          alias: 'p',
+          default: 7000
+        },
+        cert: {
+          description: 'IdP Signature PublicKey Certificate',
+          required: true,
+          default: './idp-public-cert.pem',
+          coerce: makeCertFileCoercer('certificate', 'IdP Signature PublicKey Certificate', KEY_CERT_HELP_TEXT)
+        },
+        key: {
+          description: 'IdP Signature PrivateKey Certificate',
+          required: true,
+          default: './idp-private-key.pem',
+          coerce: makeCertFileCoercer('RSA private key', 'IdP Signature PrivateKey Certificate', KEY_CERT_HELP_TEXT)
+        },
+        issuer: {
+          description: 'IdP Issuer URI',
+          required: true,
+          alias: 'iss',
+          default: 'urn:example:idp'
+        },
+        acsUrl: {
+          description: 'SP Assertion Consumer URL',
+          required: true,
+          alias: 'acs'
+        },
+        asyncAcsUrls: {
+          description: 'Async SP Assertion Consumer URL',
+          required: false,
+          alias: 'async-acs'
+        },
+        logoutUrls: {
+          description: 'SP Consumer logout URLs',
+          required: true,
+          alias: 'logout-urls'
+        },
+        audience: {
+          description: 'SP Audience URI',
+          required: true,
+          alias: 'aud'
+        },
+        relayState: {
+          description: 'Default SAML RelayState for SAMLResponse',
+          required: false,
+          alias: 'rs'
+        },
+        disableRequestAcsUrl: {
+          description: 'Disables ability for SP AuthnRequest to specify Assertion Consumer URL',
+          required: false,
+          boolean: true,
+          alias: 'static',
+          default: false
+        },
+        encryptAssertion: {
+          description: 'Encrypts assertion with SP Public Key',
+          required: false,
+          boolean: true,
+          alias: 'enc',
+          default: false
+        },
+        encryptionCert: {
+          description: 'SP Certificate (pem) for Assertion Encryption',
+          required: false,
+          string: true,
+          alias: 'encCert',
+          default: './idp-server.crt',
+          coerce: makeCertFileCoercer('certificate', 'Encryption cert')
+        },
+        encryptionPublicKey: {
+          description: 'SP RSA Public Key (pem) for Assertion Encryption ' +
+            '(e.g. openssl x509 -pubkey -noout -in sp-cert.pem)',
+          required: false,
+          string: true,
+          alias: 'encKey',
+          default: './idp-public-key.key',
+          coerce: makeCertFileCoercer('public key', 'Encryption public key')
+        },
+        httpsPrivateKey: {
+          description: 'Web Server TLS/SSL Private Key (pem)',
+          required: false,
+          string: true,
+          coerce: makeCertFileCoercer('RSA private key')
+        },
+        httpsCert: {
+          description: 'Web Server TLS/SSL Certificate (pem)',
+          required: false,
+          string: true,
+          coerce: makeCertFileCoercer('certificate')
+        },
+        https: {
+          description: 'Enables HTTPS Listener (requires httpsPrivateKey and httpsCert)',
+          required: true,
+          boolean: true,
+          default: false
+        },
+        signResponse: {
+          description: 'Enables signing of responses',
+          required: false,
+          boolean: true,
+          default: true,
+          alias: 'signResponse'
+        },
+        configFile: {
+          description: 'Path to a SAML attribute config file',
+          required: true,
+          default: require.resolve('./config.js'),
+          alias: 'conf'
+        },
+        rollSession: {
+          description: 'Create a new session for every authn request instead of reusing an existing session',
+          required: false,
+          boolean: true,
+          default: false
+        }
+      })
     .example('\t$0 --acs http://acme.okta.com/auth/saml20/exampleidp --aud https://www.okta.com/saml2/service-provider/spf5aFRRXFGIMAYXQPNV', '')
-    .check(function(argv, aliases) {
+    .check(function (argv, aliases) {
       if (argv.encryptAssertion) {
         if (argv.encryptionPublicKey === undefined) {
           return 'encryptionPublicKey argument is also required for assertion encryption';
@@ -253,7 +253,7 @@ function processArgs(options) {
       }
       return true;
     })
-    .check(function(argv, aliases) {
+    .check(function (argv, aliases) {
       if (argv.config) {
         return true;
       }
@@ -281,7 +281,7 @@ function _runServer(argv) {
   const blocks = {};
 
   argv.asyncAcsUrls = (argv.asyncAcsUrls || '').split(',').map((acsUrl) => {
-    return {acsUrl};
+    return { acsUrl };
   });
 
   argv.logoutUrls = (argv.logoutUrls[0] || '').split(',').map((serviceProviderLogoutURL) => {
@@ -313,33 +313,33 @@ function _runServer(argv) {
   SimpleProfileMapper.prototype.metadata = argv.config.metadata;
 
   const idpOptions = {
-    issuer:                 argv.issuer,
-    cert:                   argv.cert,
-    key:                    argv.key,
-    audience:               argv.audience,
-    recipient:              argv.acsUrl,
-    destination:            argv.acsUrl,
-    acsUrl:                 argv.acsUrl,
-    RelayState:             argv.relayState,
-    allowRequestAcsUrl:     !argv.disableRequestAcsUrl,
-    digestAlgorithm:        'sha256',
-    signatureAlgorithm:     'rsa-sha256',
-    signResponse:           argv.signResponse,
-    encryptAssertion:       argv.encryptAssertion,
-    encryptionAlgorithm:    'http://www.w3.org/2001/04/xmlenc#aes256-cbc',
+    issuer: argv.issuer,
+    cert: argv.cert,
+    key: argv.key,
+    audience: argv.audience,
+    recipient: argv.acsUrl,
+    destination: argv.acsUrl,
+    acsUrl: argv.acsUrl,
+    RelayState: argv.relayState,
+    allowRequestAcsUrl: !argv.disableRequestAcsUrl,
+    digestAlgorithm: 'sha256',
+    signatureAlgorithm: 'rsa-sha256',
+    signResponse: argv.signResponse,
+    encryptAssertion: argv.encryptAssertion,
+    encryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#aes256-cbc',
     keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
-    lifetimeInSeconds:      60*60*24,
-    authnContextClassRef:   'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
+    lifetimeInSeconds: 60 * 60 * 24,
+    authnContextClassRef: 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
     includeAttributeNameFormat: true,
-    profileMapper:          SimpleProfileMapper,
-    asyncAssertions:        argv.asyncAcsUrls,
-    logoutUrls:             argv.logoutUrls,
-    getUserFromRequest:     function(req) { return req.user; },
-    getPostURL:             function (audience, authnRequestDom, req, callback) {
-                              return callback(null, (req.authnRequest && req.authnRequest.acsUrl) ?
-                                req.authnRequest.acsUrl :
-                                argv.acsUrl);
-                            }
+    profileMapper: SimpleProfileMapper,
+    asyncAssertions: argv.asyncAcsUrls,
+    logoutUrls: argv.logoutUrls,
+    getUserFromRequest: function (req) { return req.user; },
+    getPostURL: function (audience, authnRequestDom, req, callback) {
+      return callback(null, (req.authnRequest && req.authnRequest.acsUrl) ?
+        req.authnRequest.acsUrl :
+        argv.acsUrl);
+    }
   }
 
   /**
@@ -359,7 +359,7 @@ function _runServer(argv) {
   app.use('/bower_components', express.static(__dirname + '/bower_components'))
 
   // Register Helpers
-  hbs.registerHelper('extend', function(name, context) {
+  hbs.registerHelper('extend', function (name, context) {
     var block = blocks[name];
     if (!block) {
       block = blocks[name] = [];
@@ -368,7 +368,14 @@ function _runServer(argv) {
     block.push(context.fn(this));
   });
 
-  hbs.registerHelper('block', function(name) {
+  hbs.registerHelper('ifEq', function (v1, v2, context) {
+    if (v1 === v2) {
+      return context.fn(this);
+    }
+    return context.inverse(this)
+  });
+
+  hbs.registerHelper('block', function (name) {
     const val = (blocks[name] || []).join('\n');
     // clear the block
     blocks[name] = [];
@@ -376,16 +383,16 @@ function _runServer(argv) {
   });
 
 
-  hbs.registerHelper('select', function(selected, options) {
+  hbs.registerHelper('select', function (selected, options) {
     return options.fn(this).replace(
       new RegExp(' value=\"' + selected + '\"'), '$& selected="selected"');
   });
 
-  hbs.registerHelper('getProperty', function(attribute, context) {
+  hbs.registerHelper('getProperty', function (attribute, context) {
     return context[attribute];
   });
 
-  hbs.registerHelper('serialize', function(context) {
+  hbs.registerHelper('serialize', function (context) {
     return new Buffer(JSON.stringify(context)).toString('base64');
   });
 
@@ -394,7 +401,7 @@ function _runServer(argv) {
    */
 
   app.use(logger(':date> :method => :status :url - {:referrer} (:response-time ms)'));
-  app.use(bodyParser.urlencoded({extended: true}))
+  app.use(bodyParser.urlencoded({ extended: true }))
   app.use(cookieParser());
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(session({
@@ -402,7 +409,7 @@ function _runServer(argv) {
     resave: false,
     saveUninitialized: true,
     name: 'idp_sid',
-    cookie: { maxAge: 1000*60*60 }
+    cookie: { maxAge: 1000 * 60 * 60 }
   }));
 
 
@@ -411,11 +418,15 @@ function _runServer(argv) {
    */
 
   const showUser = function (req, res, next) {
+    const isAdmin = req.user.userType === 'Admin';
+    console.log('isAdmin', isAdmin);
     res.render('user', {
       user: req.user,
       metadata: req.metadata,
       authnRequest: req.authnRequest,
-      idp: req.idp.options
+      idp: req.idp.options,
+      isAdmin,
+      otherUser: !isAdmin,
     });
   }
 
@@ -423,8 +434,8 @@ function _runServer(argv) {
    * Shared Handlers
    */
 
-  const parseSamlRequest = function(req, res, next) {
-    samlp.parseRequest(req, function(err, data) {
+  const parseSamlRequest = function (req, res, next) {
+    samlp.parseRequest(req, function (err, data) {
       if (err) {
         return res.render('error', {
           message: 'SAML AuthnRequest Parse Error: ' + err.message,
@@ -464,9 +475,9 @@ function _runServer(argv) {
    * Middlewares
    */
 
-  app.use(function(req, res, next){
+  app.use(function (req, res, next) {
     if (argv.rollSession) {
-      req.session.regenerate(function(err) {
+      req.session.regenerate(function (err) {
         return next();
       });
     } else {
@@ -474,7 +485,7 @@ function _runServer(argv) {
     }
   });
 
-  app.use(function(req, res, next){
+  app.use(function (req, res, next) {
     req.user = req.session.user;
     // req.user.sessionIndex = Math.abs(getHashCode(req.session.id));
     req.metadata = argv.config.metadata;
@@ -488,7 +499,6 @@ function _runServer(argv) {
 
   app.get(['/', '/idp'], redirectToLoginIfNotAuthenticated, parseSamlRequest);
   app.post(['/', '/idp'], redirectToLoginIfNotAuthenticated, parseSamlRequest);
-
   app.get('/samlp', redirectToLoginIfNotAuthenticated, samlp.auth(idpOptions));
 
   app.get(
@@ -501,23 +511,25 @@ function _runServer(argv) {
 
   const createSession = (req, user) => {
     req.user = user;
-              req.user.sessionIndex = Math.abs(getHashCode(req.session.id));
-              req.session.user = req.user;
-              req.session.logoutCount = -1;
+    req.user.sessionIndex = Math.abs(getHashCode(req.session.id));
+    req.session.user = _.omit(req.user, ['password', '__v']);
+    req.session.logoutCount = -1;
 
-              // TODO: read from db
-              req.session.sessionParticipants = req.idp.options.logoutUrls.map((logoutUrl) => {
-                return _.merge(
-                  {}, 
-                  {
-                    nameId: req.user.nameID, // NameId Of the logged in user in the SP
-                    nameIdFormat: req.user.nameIdFormat, // Format of the NameId
-                    sessionIndex: req.user.sessionIndex, // The session index generated by the IdP
-                    // cert: sp1_credentials.cert // The Session Participant public certificate, used to verify the signature of the SAML requests made by this SP
-                  },
-                  logoutUrl
-                );
-              });
+    console.log('user for session', req.user);
+
+    // TODO: read from db
+    req.session.sessionParticipants = req.idp.options.logoutUrls.map((participant) => {
+      return _.merge(
+        {},
+        {
+          nameId: req.user.nameID, // NameId Of the logged in user in the SP
+          nameIdFormat: req.user.nameIdFormat, // Format of the NameId
+          sessionIndex: req.user.sessionIndex, // The session index generated by the IdP
+          // cert: sp1_credentials.cert // The Session Participant public certificate, used to verify the signature of the SAML requests made by this SP
+        },
+        participant
+      );
+    });
   };
 
   app.post(
@@ -526,52 +538,52 @@ function _runServer(argv) {
       const { User } = mongoose.models;
       req.body.email = req.body.userName = req.body.email.toLowerCase();
       return User
-      .create(req.body)
-      .then((user) => {
-        console.log('created user', user);
-        createSession(req, user);
-        return next();
-      })
-      .catch((err) => {
-        console.log('err creating user', err);
-        return res.redirect('/login');
-      });
+        .create(req.body)
+        .then((user) => {
+          console.log('created user', user);
+          createSession(req, user);
+          return next();
+        })
+        .catch((err) => {
+          console.log('err creating user', err);
+          return res.redirect('/login');
+        });
     },
     samlp.auth(idpOptions)
   );
 
   app.post(
-    '/auth/login', 
+    '/auth/login',
     (req, res, next) => {
       const { User } = mongoose.models;
       return User
-      .findOne({email: req.body.email})
-      .then((user) => {
-        if (!user) {
+        .findOne({ email: req.body.email })
+        .then((user) => {
+          if (!user) {
+            return res.redirect('/login');
+          }
+          return user.verifyPassword(req.body.password)
+            .then(function (valid) {
+              if (valid) {
+                createSession(req, user);
+                return next();
+              } else {
+                console.log('password not valid');
+                return res.redirect('/login');
+              }
+            });
+        })
+        .catch((err) => {
+          console.log('err validating creds', err);
           return res.redirect('/login');
-        }
-        return user.verifyPassword(req.body.password)
-          .then(function(valid) {
-            if (valid) {
-              createSession(req, user);
-              return next();
-            } else {
-              console.log('password not valid');
-              return res.redirect('/login');
-            }
-          });
-      })
-      .catch((err) => {
-        console.log('err validating creds', err);
-        return res.redirect('/login');
-      });
+        });
     },
     samlp.auth(idpOptions)
   );
 
-  app.post('/sso', function(req, res) {
+  app.post('/sso', function (req, res) {
     const authOptions = extend({}, req.idp.options);
-    Object.keys(req.body).forEach(function(key) {
+    Object.keys(req.body).forEach(function (key) {
       var buffer;
       if (key === '_authnRequest') {
         buffer = new Buffer(req.body[key], 'base64');
@@ -607,11 +619,11 @@ function _runServer(argv) {
     samlp.auth(authOptions)(req, res);
   })
 
-  app.get('/metadata', function(req, res, next) {
+  app.get('/metadata', function (req, res, next) {
     samlp.metadata(req.idp.options)(req, res);
   });
 
-  app.post('/metadata', function(req, res, next) {
+  app.post('/metadata', function (req, res, next) {
     if (req.body && req.body.attributeName && req.body.displayName) {
       var attributeExists = false;
       const attribute = {
@@ -622,7 +634,7 @@ function _runServer(argv) {
         multiValue: req.body.valueType === 'multi'
       };
 
-      req.metadata.forEach(function(entry) {
+      req.metadata.forEach(function (entry) {
         if (entry.id === req.body.attributeName) {
           entry = attribute;
           attributeExists = true;
@@ -637,11 +649,11 @@ function _runServer(argv) {
     }
   });
 
-  app.get('/signout', 
-    redirectToLoginIfNotAuthenticated, 
+  app.get('/signout',
+    redirectToLoginIfNotAuthenticated,
     (req, res, next) => {
-      if (req.session.sessionParticipants.length === (req.session.logoutCount+1)){
-        req.session.destroy(function(err) {
+      if (req.session.sessionParticipants.length === (req.session.logoutCount + 1)) {
+        req.session.destroy(function (err) {
           if (err) {
             return next(err);
           }
@@ -659,15 +671,15 @@ function _runServer(argv) {
     }
   );
 
-  app.get(['/settings'], function(req, res, next) {
+  app.get(['/settings'], function (req, res, next) {
     res.render('settings', {
       idp: req.idp.options
     });
   });
 
-  app.post(['/settings'], function(req, res, next) {
-    Object.keys(req.body).forEach(function(key) {
-      switch(req.body[key].toLowerCase()){
+  app.post(['/settings'], function (req, res, next) {
+    Object.keys(req.body).forEach(function (key) {
+      switch (req.body[key].toLowerCase()) {
         case "true": case "yes": case "1":
           req.idp.options[key] = true;
           break;
@@ -689,19 +701,19 @@ function _runServer(argv) {
   });
 
   // catch 404 and forward to error handler
-  app.use(function(req, res, next) {
+  app.use(function (req, res, next) {
     const err = new Error('Route Not Found');
     err.status = 404;
     next(err);
   });
 
   // development error handler
-  app.use(function(err, req, res, next) {
+  app.use(function (err, req, res, next) {
     if (err) {
       res.status(err.status || 500);
       res.render('error', {
-          message: err.message,
-          error: err
+        message: err.message,
+        error: err
       });
     }
   });
@@ -712,13 +724,13 @@ function _runServer(argv) {
 
   console.log('starting idp server on port %s', app.get('port'));
 
-  httpServer.listen(app.get('port'), function() {
-    const scheme   = argv.https ? 'https' : 'http',
-        address  = httpServer.address(),
-        hostname = os.hostname();
-        baseUrl  = address.address === '0.0.0.0' || address.address === '::' ?
-          scheme + '://' + hostname + ':' + address.port :
-          scheme + '://localhost:' + address.port;
+  httpServer.listen(app.get('port'), function () {
+    const scheme = argv.https ? 'https' : 'http',
+      address = httpServer.address(),
+      hostname = os.hostname();
+    baseUrl = address.address === '0.0.0.0' || address.address === '::' ?
+      scheme + '://' + hostname + ':' + address.port :
+      scheme + '://localhost:' + address.port;
 
     console.log();
     console.log('SAML IdP Metadata URL: ');
@@ -743,7 +755,7 @@ function runServer(options) {
   return _runServer(args.parse([]));
 }
 
-function main () {
+function main() {
   const args = processArgs();
   _runServer(args.argv);
 }
