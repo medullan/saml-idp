@@ -653,14 +653,14 @@ function _runServer(argv) {
     redirectToLoginIfNotAuthenticated,
     (req, res, next) => {
       if (req.session.sessionParticipants.length === (req.session.logoutCount + 1)) {
-        req.session.destroy(function (err) {
+        return req.session.destroy(function (err) {
           if (err) {
             return next(err);
           }
-          res.redirect('/login');
+          return res.redirect('/login');
         })
       }
-      next();
+      return next();
     },
     (req, res, next) => {
       const SessionParticipants = require('samlp/lib/sessionParticipants');
@@ -668,6 +668,24 @@ function _runServer(argv) {
       const participant = req.session.sessionParticipants[req.session.logoutCount];
       req.idp.options.sessionParticipants = new SessionParticipants([participant]);
       samlp.logout(req.idp.options)(req, res, next);
+    },
+    (req, res, next) => {
+      res.redirect('/signout');
+    }
+  );
+
+  app.post('/async-signout',
+    redirectToLoginIfNotAuthenticated,
+    (req, res, next) => {
+      const axios = require('axios');
+      axios.post(req.query.uri, req.body)
+        .then(function (response) {
+          res.redirect('/signout');
+        })
+        .catch(function (err) {
+          console.log(err);
+          res.redirect('/signout');
+        });
     }
   );
 
