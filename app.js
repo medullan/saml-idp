@@ -678,12 +678,17 @@ function _runServer(argv) {
     redirectToLoginIfNotAuthenticated,
     (req, res, next) => {
       const axios = require('axios');
+      
+      if (!req.query.uri) {
+        return res.redirect('/signout');
+      }
+
       axios.post(req.query.uri, req.body)
         .then(function (response) {
           res.redirect('/signout');
         })
         .catch(function (err) {
-          console.log(err);
+          console.log('async-signout err:', err.message);
           res.redirect('/signout');
         });
     }
