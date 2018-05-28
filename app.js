@@ -191,7 +191,7 @@ function processArgs(options) {
           required: false,
           string: true,
           alias: 'encCert',
-          default: './idp-server.crt',
+          default: './idp-public-cert.pem',
           coerce: makeCertFileCoercer('certificate', 'Encryption cert')
         },
         encryptionPublicKey: {
@@ -292,6 +292,10 @@ function _runServer(argv) {
     };
   });
 
+  // argv.encryptionCert = (fs.readFileSync(path.join(__dirname, './', 'idp-public-cert.pem'), 'utf-8'));
+  // argv.encryptionPublicKey = (fs.readFileSync(path.join(__dirname, './', 'idp-public-key.key'), 'utf-8')); 
+
+
   console.log();
   console.log('Listener Port:\n\t' + argv.port);
   console.log('HTTPS Listener:\n\t' + argv.https);
@@ -326,6 +330,8 @@ function _runServer(argv) {
     signatureAlgorithm: 'rsa-sha256',
     signResponse: argv.signResponse,
     encryptAssertion: argv.encryptAssertion,
+    encryptionCert: argv.encryptionCert,
+    encryptionPublicKey: argv.encryptionPublicKey,
     encryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#aes256-cbc',
     keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
     lifetimeInSeconds: 60 * 60 * 24,
@@ -499,7 +505,16 @@ function _runServer(argv) {
 
   app.get(['/', '/idp'], redirectToLoginIfNotAuthenticated, parseSamlRequest);
   app.post(['/', '/idp'], redirectToLoginIfNotAuthenticated, parseSamlRequest);
-  app.get('/samlp', redirectToLoginIfNotAuthenticated, samlp.auth(idpOptions));
+  app.get(
+    '/samlp', 
+    redirectToLoginIfNotAuthenticated,
+    (req, res, next) => {
+      // console.log(req.headers);
+      // console.log(req.query);
+      return next();
+    },
+    samlp.auth(idpOptions)
+  );
 
   app.get(
     '/login',
@@ -678,13 +693,14 @@ function _runServer(argv) {
     redirectToLoginIfNotAuthenticated,
     (req, res, next) => {
       const axios = require('axios');
-      
+      console.log('async-signout uri:', req.query.uri);
       if (!req.query.uri) {
         return res.redirect('/signout');
       }
 
       axios.post(req.query.uri, req.body)
         .then(function (response) {
+          console.log('async-signout status:', response.status || response.data.status);
           res.redirect('/signout');
         })
         .catch(function (err) {
